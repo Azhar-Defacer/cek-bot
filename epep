@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Gemini Web Chat</title>
+<style>
+body {
+    font-family: Arial;
+    background:#0f0f0f;
+    color:#fff;
+    margin:0;
+}
+
+/* NAV */
+nav {
+    background:#1a1a1a;
+    padding:10px;
+    display:flex;
+    gap:10px;
+}
+nav button {
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    background:#00ffcc;
+    cursor:pointer;
+}
+
+/* PAGE */
+.page {
+    display:none;
+    padding:20px;
+}
+.active {
+    display:block;
+}
+
+/* FORM */
+input, textarea {
+    width:100%;
+    padding:10px;
+    margin:10px 0;
+    border:none;
+    border-radius:8px;
+}
+
+/* CHAT */
+#chatBox {
+    height:350px;
+    overflow-y:auto;
+    border:1px solid #333;
+    padding:10px;
+    margin-bottom:10px;
+}
+
+.msg { margin:5px 0 }
+.user { color:#00ffcc }
+.bot { color:#ffcc00 }
+
+button.send {
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    background:#00ffcc;
+}
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav>
+    <button onclick="showPage('dashboard')">⚙️ Dashboard</button>
+    <button onclick="showPage('chat')">💬 Chat</button>
+</nav>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="page active">
+    <h2>⚙️ Dashboard Gemini</h2>
+
+    <label>API KEY</label>
+    <input type="text" id="apikey" placeholder="Masukkan API Key Gemini">
+
+    <label>Instruction (System Prompt)</label>
+    <textarea id="instruction" rows="5"></textarea>
+
+    <button onclick="save()">💾 Simpan</button>
+</div>
+
+<!-- CHAT -->
+<div id="chat" class="page">
+    <h2>💬 Chat Gemini</h2>
+
+    <div id="chatBox"></div>
+
+    <input type="text" id="message" placeholder="Ketik pesan...">
+    <button class="send" onclick="send()">Kirim</button>
+</div>
+
+<script>
+function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(page).classList.add('active');
+}
+
+// SAVE SETTINGS
+function save() {
+    const apikey = document.getElementById("apikey").value;
+    const instruction = document.getElementById("instruction").value;
+
+    localStorage.setItem("gemini_apikey", apikey);
+    localStorage.setItem("gemini_instruction", instruction);
+
+    alert("✅ Tersimpan!");
+}
+
+// LOAD SETTINGS
+window.onload = () => {
+    document.getElementById("apikey").value = localStorage.getItem("gemini_apikey") || "";
+    document.getElementById("instruction").value = localStorage.getItem("gemini_instruction") || "";
+}
+
+// CHAT FUNCTION
+const chatBox = document.getElementById("chatBox");
+
+function addMessage(text, type) {
+    const div = document.createElement("div");
+    div.className = "msg " + type;
+    div.textContent = (type === "user" ? "🧑: " : "🤖: ") + text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function send() {
+    const input = document.getElementById("message");
+    const msg = input.value;
+    if (!msg) return;
+
+    addMessage(msg, "user");
+    input.value = "";
+
+    const apiKey = localStorage.getItem("gemini_apikey");
+    const instruction = localStorage.getItem("gemini_instruction") || "";
+
+    if (!apiKey) {
+        alert("❌ API Key belum diisi!");
+        return;
+    }
+
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                contents: [
+                    {
+                        parts: [
+                            { text: instruction + "\nUser: " + msg }
+                        ]
+                    }
+                ]
+            })
+        });
+
+        const data = await res.json();
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "❌ Error response";
+
+        addMessage(reply, "bot");
+
+    } catch (err) {
+        addMessage("❌ Error: " + err.message, "bot");
+    }
+}
+
+// ENTER KEY SUPPORT
+document.getElementById("message").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") send();
+});
+</script>
+
+</body>
+</html>
