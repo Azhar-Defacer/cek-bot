@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Telegram Bot URL Viewer</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    text-align: center;
+    padding-top: 100px;
+}
+input {
+    padding: 12px;
+    width: 300px;
+    border-radius: 8px;
+    border: none;
+}
+button {
+    padding: 12px 20px;
+    border-radius: 8px;
+    background: #22c55e;
+    color: white;
+    cursor: pointer;
+}
+.box {
+    background: #1e293b;
+    padding: 30px;
+    border-radius: 12px;
+    display: inline-block;
+}
+</style>
+
+</head>
+<body>
+
+<div class="box">
+    <h2>🤖 Telegram Bot URL Viewer</h2>
+    <input type="text" id="token" placeholder="Masukkan Token Bot..." />
+    <br><br>
+    <button id="cekBtn">Cek Bot</button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+// pakai event listener biar aman
+document.getElementById("cekBtn").addEventListener("click", async function() {
+    const token = document.getElementById("token").value;
+    const resultDiv = document.getElementById("result");
+
+    if (!token) {
+        resultDiv.innerHTML = "❌ Token kosong!";
+        return;
+    }
+
+    resultDiv.innerHTML = "⏳ Mengecek...";
+
+    try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+        const data = await res.json();
+
+        if (data.ok) {
+            const username = data.result.username;
+            const link = `https://t.me/${username}`;
+
+            resultDiv.innerHTML = `
+                <p>✅ Bot ditemukan!</p>
+                <p>Username: @${username}</p>
+                <p><a href="${link}" target="_blank">${link}</a></p>
+            `;
+        } else {
+            resultDiv.innerHTML = "❌ Token tidak valid!";
+        }
+    } catch (err) {
+        resultDiv.innerHTML = "❌ Error koneksi!";
+    }
+});
+</script>
+
+</body>
+</html>
